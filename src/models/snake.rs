@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::collections::LinkedList;
 
 use crate::models::direction::Direction;
 use crate::models::vector2i::Vector2i;
@@ -7,7 +8,7 @@ use crate::{utils, PAD_HEIGHT, PAD_WIDTH};
 #[derive(Debug, Clone)]
 pub struct Snake {
     root: Vector2i,
-    parts: Vec<Vector2i>,
+    parts: LinkedList<Vector2i>,
     direction: Direction,
     apple: Vector2i,
 }
@@ -16,7 +17,11 @@ impl Snake {
     pub fn new_at(root: Vector2i) -> Self {
         let mut instance = Self {
             root: root.clone(),
-            parts: vec![root],
+            parts: {
+                let mut list = LinkedList::new();
+                list.push_back(root);
+                list
+            },
             direction: Direction::Right,
             apple: Vector2i { x: 0, y: 0 },
         };
@@ -27,7 +32,11 @@ impl Snake {
     }
 
     pub fn reset(&mut self) {
-        self.parts = vec![self.root.clone()];
+        self.parts = {
+            let mut list = LinkedList::new();
+            list.push_back(self.root.clone());
+            list
+        };
         self.direction = Direction::Right;
         self.apple = self.find_new_apple();
     }
@@ -35,8 +44,8 @@ impl Snake {
     pub fn tick(&mut self) {
         let new_head = self
             .parts
-            .last()
-            .expect("last should exist")
+            .back()
+            .expect("back should exist")
             .move_with(self.direction);
 
         if self.is_inside(&new_head) && self.parts.len() != 1 {
@@ -47,10 +56,10 @@ impl Snake {
         if new_head.x == self.apple.x && new_head.y == self.apple.y {
             self.apple = self.find_new_apple();
         } else {
-            self.parts.remove(0);
+            self.parts.pop_front();
         }
 
-        self.parts.push(new_head);
+        self.parts.push_back(new_head);
     }
 
     pub fn change_direction(&mut self, direction: Direction) {
@@ -92,7 +101,7 @@ impl Snake {
 
 impl IntoIterator for Snake {
     type Item = Vector2i;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = std::collections::linked_list::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.parts.into_iter()
